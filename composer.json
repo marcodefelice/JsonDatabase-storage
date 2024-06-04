@@ -1,0 +1,22 @@
+{
+    "name": "mdf/json-database-storage",
+    "description": "Json database storage with PHP",
+    "type": "library",
+    "require": {
+        "php": ">=7.4",
+        "vlucas/phpdotenv": "5.6.x-dev",
+        "monolog/monolog": "^3.0@dev"
+    },
+    "autoload": {
+        "psr-4": {
+            "Mdf\\JsonStorage\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Marco De Felice",
+            "email": "marco.defelice890@gmail.com"
+        }
+    ],
+    "minimum-stability": "alpha"
+}
