@@ -10,7 +10,7 @@ interface RepositoryInterface {
 
     public function find(string $key, string $value): array;
     
-    public function update(string|int $id, array $data);
+    public function update(string|int $id, JsonModelInterface $data);
 
     public function get(int|string $id): array;
 }

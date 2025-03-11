@@ -3,6 +3,7 @@ namespace Mdf\JsonStorage\Service;
 
 use DateTime;
 use Mdf\JsonStorage\Domain\Model\JsonModelInterface;
+use Ramsey\Uuid\Uuid;
 
 /**
  * Class DbService
@@ -11,8 +12,7 @@ use Mdf\JsonStorage\Domain\Model\JsonModelInterface;
  */
 class DbService {
 
-   private  const STORAGE_PATH = __DIR__ . '/../../storage/database/';
-
+    private string $storagePath;
     /**
      * The name of the table.
      * 
@@ -31,17 +31,51 @@ class DbService {
      * 
      * @param string $tableName The name of the table.
      */
-    public function __construct(string $tableName)
+    public function __construct(string $storagePath)
     {
-        if (!is_dir(self::STORAGE_PATH)) {
-            mkdir(self::STORAGE_PATH, 0777, true);
+        if (!is_dir($storagePath)) {
+            mkdir($storagePath, 0777, true);
         }
+        $this->storagePath = $storagePath;
+    }
+
+    /**
+     * Creates a new instance of the DbService class.
+     *
+     * This static method serves as a factory for creating new DbService instances
+     * with the specified storage path.
+     *
+     * @param string $storagePath The path where the database files will be stored
+     * @param string $tableName The name of the table
+     * @return self A new instance of DbService
+     */
+    public static function createInstance(string $storagePath, string $tableName): self
+    {
+        $instance = new self($storagePath);
+        $instance->setTableName($tableName);
+        return $instance;
+    }
+
+    /**
+     * Sets the table name for the database operations.
+     *
+     * @param string $tableName The name of the table to be used
+     * @return self Returns instance of self for method chaining
+     */
+    public function setTableName(string $tableName): self
+    {
 
         $this->tableName = $tableName;
-        if (!file_exists(self::STORAGE_PATH . $tableName . '.json')) {
+        if (!file_exists($this->storagePath . $tableName . '.json')) {
             // Create the JSON file
-            file_put_contents(self::STORAGE_PATH . $tableName . '.json', '{}');
+            $file = file_put_contents($this->storagePath. $tableName . '.json', '{[]}');
+
+            if ($file === false) {
+                throw new JsonDbServiceException('Could not create the JSON file.');
+            }
         }
+
+        return $this;
     }
 
     /**
@@ -51,7 +85,7 @@ class DbService {
      */
     private function getContent(): array
     {
-        return (array) json_decode(file_get_contents(self::STORAGE_PATH . $this->tableName . '.json'), true);
+        return (array) json_decode(file_get_contents($this->storagePath. $this->tableName . '.json'), true);
     }
 
     /**
@@ -63,17 +97,17 @@ class DbService {
     {
         $currentContent = $this->getContent();
 
-        if(null !== $content->getId()) {
-            $id = uniqid();
+        if(null === $content->getId()) {
+            throw new JsonDbServiceException('The content must have an ID.');
         }
 
-        $content = [$id => array_merge($content->toArray(), [
-            'created_at' => date(DATE_ATOM),
-            'updated_at' => date(DATE_ATOM)
-        ])];
+        $content->setCreatedAt(new DateTime());
+        $content->setUpdatedAt(new DateTime());
+        
+        $newContent[$content->getId()] = $content->__toArray();
+        $newContent = array_merge($currentContent, $newContent);
 
-        $newContent = array_merge($currentContent, $content);
-        file_put_contents(self::STORAGE_PATH . $this->tableName . '.json', json_encode($newContent));
+        file_put_contents($this->storagePath. $this->tableName . '.json', json_encode($newContent));
     }
 
     /**
@@ -88,16 +122,23 @@ class DbService {
         $current = $this->getContent();
         foreach($current as $item) {
             if ($item['id'] == $content->getId()) {
-                $this->update($content['id'], $content->toArray());
+                $this->update($content['id'], $content);
                 return;
             }
         }
         $this->putContent($content);
     }
 
-    public function update($id, array $content)
+    /**
+     * Updates a record in the database.
+     *
+     * @param mixed $id The identifier of the record to update
+     * @param JsonModelInterface $content The new content to update the record with
+     * @return mixed Returns the updated record or false on failure
+     */
+    public function update($id, JsonModelInterface $content)
     {
-        $content['updated_at'] = date(DATE_ATOM);
+        $content->setUpdatedAt(new DateTime());
         $current = $this->getContent();
 
         // remove old fields
@@ -106,7 +147,7 @@ class DbService {
         }
         
         $current[$id] = array_merge($current[$id], $content);
-        file_put_contents(self::STORAGE_PATH . $this->tableName . '.json', json_encode($current));
+        file_put_contents($this->storagePath. $this->tableName . '.json', json_encode($current));
     }
 
     /**
@@ -137,6 +178,24 @@ class DbService {
         return $this;
     }
 
+    /**
+     * Example usage of select method:
+     * 
+     * $db = new DbService('/path/to/storage/');
+     * $db->setTableName('users');
+     * 
+     * // This will return only id and name fields from all records
+     * $users = $db->createQuery()
+     *            ->select(['id', 'name'])
+     *            ->fetchAll();
+     *
+     * // This will return only email field from users where role is 'admin'
+     * $adminEmails = $db->createQuery()
+     *                  ->where('role', 'admin')
+     *                  ->select(['email'])
+     *                  ->fetchAll();
+     */
+
     public function get(string|int $id) 
     {
         return $this->content[$id] ?? null;
@@ -161,7 +220,7 @@ class DbService {
      *
      * @return array An array of records fetched from the database.
      */
-    public function fetchAll()
+    public function fetchAll(): array
     {
         return $this->content;
     }
@@ -169,5 +228,12 @@ class DbService {
     public function fetchOne($id)
     {
         return $this->content[$id] ?? null;
+    }
+
+    public function delete(string $id): void
+    {
+        $current = $this->getContent();
+        unset($current[$id]);
+        file_put_contents($this->storagePath. $this->tableName . '.json', json_encode($current));
     }
 }

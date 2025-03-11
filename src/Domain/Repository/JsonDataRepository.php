@@ -1,7 +1,6 @@
 <?php
 namespace Mdf\JsonStorage\Domain\Repository;
 
-use DateTime;
 use Mdf\JsonStorage\Domain\Model\JsonModelInterface;
 use Mdf\JsonStorage\Service\DbService;
 
@@ -24,15 +23,14 @@ class JsonDataRepository implements RepositoryInterface {
         return $this->dbService->createQuery()->where($key, $value)->fetchAll();
     }
 
-    public function update(string|int $id, array $data): void
+    public function update(string|int $id, JsonModelInterface $data): void
     {
         $this->dbService->update($id, $data);
     }
 
-    public function deactivate($id)
+    public function delete($id)
     {
-        $deactivateAt = date(DATE_ATOM);
-        $this->dbService->update($id, ['deactivated_at' => $deactivateAt]);
+        $this->dbService->delete($id);
     }
 
     public function get(int|string $id): array
