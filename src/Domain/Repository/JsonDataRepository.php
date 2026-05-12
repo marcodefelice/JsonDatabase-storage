@@ -9,9 +9,9 @@ class JsonDataRepository implements RepositoryInterface {
 
     private DbService $dbService;
 
-    public function __construct()
+    public function __construct(JsonModelInterface model)
     {
-        $this->dbService = new DbService('giftcards');
+        $this->dbService = new DbService($model::class);
     }
 
     public function save(JsonModelInterface $data): void
