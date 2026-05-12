@@ -163,6 +163,9 @@ class DbService {
      */
     public function fetchAll()
     {
+        if(empty($this->content)) {
+            $this->content = $this->getContent();
+        }
         return $this->content;
     }
 
