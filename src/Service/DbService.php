@@ -105,8 +105,10 @@ class DbService {
             unset($current[$key]);
         }
         
-        $current[$id] = array_merge($current[$id], $content);
-        file_put_contents(self::STORAGE_PATH . $this->tableName . '.json', json_encode($current));
+        if(!is_null($current[$id])) {
+            $current[$id] = array_merge($current[$id], $content);
+            file_put_contents(self::STORAGE_PATH . $this->tableName . '.json', json_encode($current));
+        }
     }
 
     /**
