@@ -87,7 +87,7 @@ class DbService {
         // ceck if already exist
         $current = $this->getContent();
         foreach($current as $key => $item) {
-            if ($item['id'] == $content->getId()) {
+            if (!empty($item['id']) && $item['id'] == $content->getId()) {
                 $this->update($key, $content->toArray());
                 return;
             }
