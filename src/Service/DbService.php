@@ -31,16 +31,16 @@ class DbService {
      * 
      * @param string $tableName The name of the table.
      */
-    public function __construct(string $tableName)
+    public function __construct(string $tableName, string $storagePath = self::STORAGE_PATH)
     {
-        if (!is_dir(self::STORAGE_PATH)) {
-            mkdir(self::STORAGE_PATH, 0777, true);
+        if (!is_dir($storagePath)) {
+            mkdir($storagePath, 0777, true);
         }
 
         $this->tableName = $tableName;
-        if (!file_exists(self::STORAGE_PATH . $tableName . '.json')) {
+        if (!file_exists($storagePath . $tableName . '.json')) {
             // Create the JSON file
-            file_put_contents(self::STORAGE_PATH . $tableName . '.json', '{}');
+            file_put_contents($storagePath . $tableName . '.json', '{}');
         }
     }
 
@@ -168,6 +168,11 @@ class DbService {
         if(empty($this->content)) {
             $this->content = $this->getContent();
         }
+        return $this->content;
+    }
+
+    public function fetch()
+    {
         return $this->content;
     }
 
